@@ -1,13 +1,15 @@
 plugin: netbox.netbox.nb_inventory
 validate_certs: False
 config_context: True
- 
+interfaces: True
+group_names_raw: True
 group_by:
   - device_roles
   - platforms
   - device_types
   - sites
   - tags
+query_filters: []
 device_query_filters:
   - has_primary_ip: 'true'
 flatten_custom_fields: True
