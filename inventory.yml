@@ -4,6 +4,9 @@ config_context: True
  
 group_by:
   - device_roles
- 
+  - platforms
+  - device_types
+  - sites
+  - tags
 device_query_filters:
   - has_primary_ip: 'true'
