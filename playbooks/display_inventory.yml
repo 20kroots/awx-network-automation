@@ -1,0 +1,33 @@
+---
+- name: Display AWX Inventory Information
+  hosts: all
+  gather_facts: false
+  connection: local
+
+  tasks:
+    - name: Display all inventory hosts
+      debug:
+        msg: "Inventory contains {{ groups['all'] | length }} hosts"
+
+    - name: Show host variables for each host
+      debug:
+        var: hostvars[inventory_hostname]
+      loop: "{{ groups['all'] }}"
+      loop_control:
+        label: "{{ inventory_hostname }}"
+
+    - name: Display group information
+      debug:
+        msg: |
+          Group: {{ group }}
+          Hosts: {{ groups[group] | join(', ') }}
+          Group vars: {{ group_vars[group] | default('None') }}
+      loop: "{{ groups.keys() | list }}"
+      loop_control:
+        label: "{{ group }}"
+      when: group not in ['all', 'ungrouped']
+
+    - name: Show ungrouped hosts
+      debug:
+        msg: "Ungrouped hosts: {{ groups['ungrouped'] | default('None') }}"
+      when: "'ungrouped' in groups"
