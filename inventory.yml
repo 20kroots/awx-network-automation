@@ -1,8 +1,8 @@
 plugin: netbox.netbox.nb_inventory
-validate_certs: False
-config_context: True
-interfaces: True
-group_names_raw: True
+validate_certs: false
+config_context: true
+interfaces: true
+group_names_raw: true
 group_by:
   - device_roles
   - platforms
@@ -12,4 +12,4 @@ group_by:
 query_filters: []
 device_query_filters:
   - has_primary_ip: 'true'
-flatten_custom_fields: True
+flatten_custom_fields: true
