@@ -10,3 +10,4 @@ group_by:
   - tags
 device_query_filters:
   - has_primary_ip: 'true'
+flatten_custom_fields: True
