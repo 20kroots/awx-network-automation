@@ -1,0 +1,32 @@
+---
+- name: Gather device hostnames from Arista and Cisco devices
+  hosts: all
+  gather_facts: no
+  connection: network_cli
+
+  tasks:
+    - name: Set network OS based on device type
+      set_fact:
+        ansible_network_os: "{% if 'arista' in inventory_hostname %}eos{% elif 'cisco' in inventory_hostname %}ios{% endif %}"
+      when: ansible_network_os == 'auto'
+
+    - name: Gather hostname from Arista devices
+      arista.eos.eos_command:
+        commands: show hostname
+      register: arista_hostname
+      when: ansible_network_os == 'eos'
+
+    - name: Gather hostname from Cisco devices
+      cisco.ios.ios_command:
+        commands: show running-config | include hostname
+      register: cisco_hostname
+      when: ansible_network_os == 'ios'
+
+    - name: Display hostnames
+      debug:
+        msg: |
+          Device: {{ inventory_hostname }}
+          Hostname: {% if ansible_network_os == 'eos' %}{{ arista_hostname.stdout[0] | regex_replace('^.*hostname is (\\S+).*$', '\\1') }}
+                   {% elif ansible_network_os == 'ios' %}{{ cisco_hostname.stdout[0] | regex_replace('^hostname (\\S+).*$', '\\1') }}
+                   {% endif %}
+How to Use This Playbook
