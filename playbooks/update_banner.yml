@@ -3,7 +3,7 @@
   hosts: u1-int-rtr01
   gather_facts: no
   vars:
-    github_banner_url: "https://https://github.com/20kroots/awx-network-automation/new/main/config/cisco/banner.config"
+    github_banner_url: "https://github.com/20kroots/awx-network-automation/new/main/config/cisco/banner.config"
     temp_banner_file: "/tmp/banner_template.txt"
     banner_delimiter: "end_banner"
 
