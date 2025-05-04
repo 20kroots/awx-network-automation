@@ -1,44 +1,15 @@
 ---
-- name: Collect network device hostnames
+- name: Collect and export network device hostnames
   hosts: all
-  gather_facts: false
+  gather_facts: true  # Required for ansible_date_time
+  connection: ansible.netcommon.network_cli
 
-  # Set connection parameters
   vars:
-    ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: "{{ 'eos' if 'eos' in group_names else 'ios' if 'ios' in group_names else omit }}"
     output_dir: "/tmp/awx_hostnames"
-    csv_file: "{{ output_dir }}/hostnames_{{ ansible_date_time.iso8601_basic_short }}.csv"
+    csv_file: "{{ output_dir }}/hostnames.csv"  # Simplified filename
 
   tasks:
-    # Collect hostnames from Arista EOS devices
-    - name: Get EOS hostname
-      arista.eos.eos_command:
-        commands: show hostname
-      register: hostname_result
-      when: "'eos' in group_names"
-      ignore_errors: yes
-
-    # Collect hostnames from Cisco IOS devices  
-    - name: Get IOS hostname
-      cisco.ios.ios_command:
-        commands: show running-config | include hostname
-      register: hostname_result
-      when: "'ios' in group_names"
-      ignore_errors: yes
-
-    # Extract hostnames to facts
-    - name: Set hostname facts
-      set_fact:
-        device_hostname: >-
-          {% if 'eos' in group_names and eos_result is defined %}
-            {{ eos_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
-          {% elif 'ios' in group_names and ios_result is defined %}
-            {{ ios_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
-          {% else %}
-            UNKNOWN
-          {% endif %}
-
     - name: Create output directory
       ansible.builtin.file:
         path: "{{ output_dir }}"
@@ -47,16 +18,52 @@
       delegate_to: localhost
       run_once: true
 
+    # Collect Arista EOS hostname
+    - name: Get EOS hostname
+      arista.eos.eos_command:
+        commands: show hostname
+      register: eos_result
+      when: "'eos' in group_names"
+      ignore_errors: yes
+
+    # Collect Cisco IOS hostname
+    - name: Get IOS hostname
+      cisco.ios.ios_command:
+        commands: show running-config | include hostname
+      register: ios_result
+      when: "'ios' in group_names"
+      ignore_errors: yes
+
+    # Extract hostnames to facts - Fixed regex patterns
+    - name: Set hostname facts
+      set_fact:
+        device_hostname: >-
+          {% if 'eos' in group_names and eos_result is defined %}
+            {{ eos_result.stdout[0] | regex_replace('.*Hostname:\\s+(\\S+).*', '\\1') }}
+          {% elif 'ios' in group_names and ios_result is defined %}
+            {{ ios_result.stdout[0] | regex_replace('hostname\\s+(\\S+).*', '\\1') }}
+          {% else %}
+            UNKNOWN
+          {% endif %}
+
     # Create CSV content
     - name: Generate CSV content
       ansible.builtin.set_fact:
-        csv_lines: "{{ csv_lines | default([]) + [ {'Hostname': device_hostname | trim, 'IP': inventory_hostname, 'Type': ansible_network_os | upper } ] }}"
+        csv_lines: "{{ csv_lines | default([]) + [ {
+          'Hostname': device_hostname | trim,
+          'IP': inventory_hostname,
+          'Type': ansible_network_os | upper,
+          'Timestamp': ansible_date_time.iso8601
+        } ] }}"
       when: "'eos' in group_names or 'ios' in group_names"
 
-    # Write CSV file - FIXED TEMPLATE PATH
+    # Write CSV file
     - name: Write CSV file
-      ansible.builtin.template:
-        src: "{{ playbook_dir }}/templates/csv_template.j2"
+      ansible.builtin.copy:
+        content: |
+          Hostname,IP Address,Device Type,Timestamp
+          {% for item in csv_lines %}{{ item.Hostname }},{{ item.IP }},{{ item.Type }},{{ item.Timestamp }}
+          {% endfor %}
         dest: "{{ csv_file }}"
       delegate_to: localhost
       run_once: true
