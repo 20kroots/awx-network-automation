@@ -1,3 +1,3 @@
-Hostname,IP Address,Device Type
-{% for item in csv_lines %}{{ item.Hostname }},{{ item.IP }},{{ item.Type }}
+Hostname,IP Address,Device Type,Collection Time
+{% for item in csv_lines %}{{ item.Hostname }},{{ item.IP }},{{ item.Type }},{{ ansible_date_time.iso8601 }}
 {% endfor %}
