@@ -37,19 +37,28 @@
             UNKNOWN
           {% endif %}
 
+    - name: Create output directory
+      ansible.builtin.file:
+        path: "{{ output_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
     # Create CSV content
     - name: Generate CSV content
       ansible.builtin.set_fact:
-        csv_lines: "{{ csv_lines | default([]) + [ {'Hostname': device_hostname, 'IP': inventory_hostname, 'Type': ansible_network_os | upper } ] }}"
+        csv_lines: "{{ csv_lines | default([]) + [ {'Hostname': device_hostname | trim, 'IP': inventory_hostname, 'Type': ansible_network_os | upper } ] }}"
       when: "'eos' in group_names or 'ios' in group_names"
 
-    # Write CSV file
+    # Write CSV file - FIXED TEMPLATE PATH
     - name: Write CSV file
       ansible.builtin.template:
-        src: csv_template.j2
+        src: "{{ playbook_dir }}/templates/csv_template.j2"
         dest: "{{ csv_file }}"
       delegate_to: localhost
       run_once: true
+      when: csv_lines is defined
 
     # Register file as AWX artifact
     - name: Register output file
@@ -57,3 +66,4 @@
         awx_artifact_files: "{{ csv_file }}"
       delegate_to: localhost
       run_once: true
+      when: csv_lines is defined
