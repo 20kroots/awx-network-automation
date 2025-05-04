@@ -68,10 +68,22 @@
       run_once: true
       when: csv_lines is defined
 
-    # Register file as AWX artifact
-    - name: Register output file
-      ansible.builtin.set_fact:
-        awx_artifact_files: "{{ csv_file }}"
+    - name: Register output file as artifact
+      ansible.builtin.set_stats:
+        data:
+          artifact_path: "{{ csv_file }}"
       delegate_to: localhost
       run_once: true
       when: csv_lines is defined
+
+    - name: Verify CSV file exists
+      ansible.builtin.command: ls -la "{{ csv_file }}"
+      register: file_check
+      delegate_to: localhost
+      run_once: true
+      ignore_errors: yes
+    
+    - name: Show file status
+      debug:
+        var: file_check
+      when: file_check is defined
