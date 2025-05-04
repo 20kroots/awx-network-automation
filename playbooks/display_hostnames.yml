@@ -1,7 +1,7 @@
 ---
 - name: Collect and export network device hostnames
   hosts: all
-  gather_facts: true  # Required for ansible_date_time
+  gather_facts: false  # Required for ansible_date_time
   connection: ansible.netcommon.network_cli
 
   vars:
@@ -53,7 +53,6 @@
           'Hostname': device_hostname | trim,
           'IP': inventory_hostname,
           'Type': ansible_network_os | upper,
-          'Timestamp': ansible_date_time.iso8601
         } ] }}"
       when: "'eos' in group_names or 'ios' in group_names"
 
@@ -61,8 +60,8 @@
     - name: Write CSV file
       ansible.builtin.copy:
         content: |
-          Hostname,IP Address,Device Type,Timestamp
-          {% for item in csv_lines %}{{ item.Hostname }},{{ item.IP }},{{ item.Type }},{{ item.Timestamp }}
+          Hostname,IP Address,Device Type
+          {% for item in csv_lines %}{{ item.Hostname }},{{ item.IP }},{{ item.Type }}
           {% endfor %}
         dest: "{{ csv_file }}"
       delegate_to: localhost
