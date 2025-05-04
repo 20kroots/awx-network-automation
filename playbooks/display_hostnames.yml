@@ -1,6 +1,6 @@
 ---
 - name: Get Cisco device hostname using show command
-  hosts: cisco_devices
+  hosts: all
   gather_facts: no
   connection: network_cli
 
