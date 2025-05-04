@@ -1,15 +1,40 @@
 ---
-- name: Get Cisco device hostname using show command
+- name: Collect network device hostnames
   hosts: all
-  gather_facts: no
+  gather_facts: false
   connection: network_cli
 
   tasks:
-    - name: Run show command to get hostname
-      cisco.ios.ios_command:
-        commands: show run | include hostname
-      register: show_hostname
+    # Set network OS based on group membership
+    - name: Set ansible_network_os
+      set_fact:
+        ansible_network_os: >-
+          {% if 'eos' in group_names %}eos
+          {% elif 'ios' in group_names %}ios
+          {% elif 'nxos' in group_names %}nxos
+          {% else %}unknown{% endif %}
 
-    - name: Display hostname
+    # Collect hostnames from Arista EOS devices
+    - name: Get EOS hostname
+      arista.eos.eos_command:
+        commands: show hostname
+      register: eos_hostname
+      when: ansible_network_os == 'eos'
+
+    # Collect hostnames from Cisco IOS devices  
+    - name: Get IOS hostname
+      cisco.ios.ios_command:
+        commands: show running-config | include hostname
+      register: ios_hostname
+      when: ansible_network_os == 'ios'
+
+    # Display results
+    - name: Show hostnames
       debug:
-        msg: "Hostname of {{ inventory_hostname }} is {{ show_hostname.stdout[0].split('hostname ')[1] }}"
+        msg: |
+          Device: {{ inventory_hostname }}
+          Type: {{ ansible_network_os | upper }}
+          Hostname: {% if ansible_network_os == 'eos' %}{{ eos_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
+                   {% elif ansible_network_os == 'ios' %}{{ ios_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
+                   {% else %}Unknown device type{% endif %}
+      when: ansible_network_os != 'unknown'
