@@ -4,13 +4,15 @@
   connection: local
   vars:
     artifact_dir: "/var/lib/awx/public/artifacts"
-    artifact_file: "sample_artifact.txt"
+    artifact_file: "sample_artifact_{{ ansible_date_time.iso8601_basic }}.txt"
   tasks:
     - name: Ensure artifact directory exists
       ansible.builtin.file:
         path: "{{ artifact_dir }}"
         state: directory
         mode: '0755'
+        owner: awx
+        group: awx
       become: true
 
     - name: Create simple text artifact
@@ -21,8 +23,17 @@
           This is a simple text file for demonstration purposes.
         dest: "{{ artifact_dir }}/{{ artifact_file }}"
         mode: '0644'
+        owner: awx
+        group: awx
       become: true
+
+    - name: Register artifact for AWX job
+      ansible.builtin.set_stats:
+        data:
+          artifact: "{{ artifact_dir }}/{{ artifact_file }}"
+          download_url: "http://{{ ansible_host }}/artifacts/{{ artifact_file }}"
+      when: awx_job_id is defined  # Only run in AWX context
 
     - name: Output artifact location
       ansible.builtin.debug:
-        msg: "Artifact created at {{ artifact_dir }}/{{ artifact_file }} and is available for download from AWX"
+        msg: "Artifact created at {{ artifact_dir }}/{{ artifact_file }} and is available for download from AWX at http://{{ ansible_host }}/artifacts/{{ artifact_file }}"
