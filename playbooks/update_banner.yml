@@ -2,8 +2,9 @@
 - name: Update device banner based on GitHub template
   hosts: u1-int-rtr01
   gather_facts: no
+  connection: ansible.netcommon.network_cli  # Explicitly set to network_cli for SSH
   vars:
-    github_banner_url: "https://github.com/20kroots/awx-network-automation/new/main/config/cisco/banner.config"
+    github_banner_url: "https://raw.githubusercontent.com/username/repo/main/banner_template.txt"
     temp_banner_file: "/tmp/banner_template.txt"
     banner_delimiter: "end_banner"
 
