@@ -1,6 +1,6 @@
 ---
 - name: Update device banner based on GitHub template
-  hosts: network_devices
+  hosts: u1-int-rtr01
   gather_facts: no
   vars:
     github_banner_url: "https://https://github.com/20kroots/awx-network-automation/new/main/config/cisco/banner.config"
