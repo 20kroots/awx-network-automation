@@ -1,60 +1,20 @@
 ---
-- name: Update device banner based on GitHub template
-  hosts: u1-int-rtr01
+- name: Configure login banner on Cisco switch
+  hosts: cisco_switches
   gather_facts: no
-  connection: ansible.netcommon.network_cli  # Explicitly set to network_cli for SSH
-  vars:
-    github_banner_url: "https://raw.githubusercontent.com/20kroots/awx-network-automation/main/config/cisco/banner.txt"
-    temp_banner_file: "/tmp/banner_template.txt"
-    banner_delimiter: "end_banner"
-
+  connection: ansible.netcommon.network_cli
   tasks:
-    - name: Fetch banner template from GitHub
-      ansible.builtin.get_url:
-        url: "{{ github_banner_url }}"
-        dest: "{{ temp_banner_file }}"
-        mode: '0644'
-      delegate_to: localhost
-      register: banner_fetch
+    - name: Set login banner
+      cisco.ios.ios_banner:
+        banner: login
+        text: |
+          **************************************************
+          Unauthorized access is strictly prohibited.
+          All activities are monitored and logged.
+          **************************************************
+        state: present
+      register: banner_output
 
-    - name: Read banner template content
-      ansible.builtin.slurp:
-        src: "{{ temp_banner_file }}"
-      delegate_to: localhost
-      register: banner_template
-      when: banner_fetch.status_code == 200
-
-    - name: Get running banner configuration
-      cisco.ios.ios_command:
-        commands:
-          - show running-config | include banner
-      register: running_banner
-
-    - name: Extract banner content from running configuration
-      ansible.builtin.set_fact:
-        running_banner_content: "{{ running_banner.stdout[0] | regex_replace('^banner motd \\^C(.*)\\^C.*$', '\\1') | trim }}"
-      when: running_banner.stdout[0] is match('banner motd')
-
-    - name: Compare running banner with template
-      ansible.builtin.set_fact:
-        banner_mismatch: "{{ running_banner_content != (banner_template.content | b64decode | trim) }}"
-      when: running_banner.stdout[0] is match('banner motd')
-
-    - name: Update banner configuration if different
-      cisco.ios.ios_config:
-        lines:
-          - banner motd ^C{{ banner_template.content | b64decode | trim }}^C
-      when: banner_mismatch | default(false)
-      register: banner_update
-
-    - name: Save configuration if banner was updated
-      cisco.ios.ios_config:
-        save_when: modified
-      when: banner_update.changed
-
-    - name: Clean up temporary banner file
-      ansible.builtin.file:
-        path: "{{ temp_banner_file }}"
-        state: absent
-      delegate_to: localhost
-      when: banner_fetch.status_code == 200
+    - name: Display banner configuration result
+      debug:
+        msg: "{{ banner_output }}"
