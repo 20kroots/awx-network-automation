@@ -9,9 +9,8 @@
     - name: Set ansible_network_os
       set_fact:
         ansible_network_os: >-
-          {% if 'eos' in group_names %}eos
-          {% elif 'ios' in group_names %}ios
-          {% elif 'nxos' in group_names %}nxos
+          {% if 'eos' in group_names %}arista.eos.eos
+          {% elif 'ios' in group_names %}cisco.ios.ios
           {% else %}unknown{% endif %}
 
     # Collect hostnames from Arista EOS devices
