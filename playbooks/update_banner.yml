@@ -3,7 +3,7 @@
   hosts: network_devices
   gather_facts: no
   vars:
-    github_banner_url: "https://https://github.com/20kroots/awx-network-automation/new/main/playbooks/config/banner.config"
+    github_banner_url: "https://https://github.com/20kroots/awx-network-automation/new/main/config/cisco/banner.config"
     temp_banner_file: "/tmp/banner_template.txt"
     banner_delimiter: "end_banner"
 
