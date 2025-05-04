@@ -25,13 +25,13 @@
       when: "'ios' in group_names"
       ignore_errors: yes
 
-    # Display results
+    # Process and display results
     - name: Show hostnames
       debug:
         msg: |
           Device: {{ inventory_hostname }}
-          Type: {{ 'Arista EOS' if 'eos' in group_names else 'Cisco IOS' if 'ios' in group_names else 'Unknown' }}
-          Hostname: {% if 'eos' in group_names %}{{ hostname_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') | default('UNKNOWN') }}
-                   {% elif 'ios' in group_names %}{{ hostname_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') | default('UNKNOWN') }}
-                   {% else %}UNKNOWN DEVICE TYPE{% endif %}
+          Type: {{ 'Arista EOS' if 'eos' in group_names else 'Cisco IOS' }}
+          Hostname: {% if 'eos' in group_names and eos_result is defined %}{{ eos_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
+                   {% elif 'ios' in group_names and ios_result is defined %}{{ ios_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
+                   {% else %}NOT FOUND{% endif %}
       when: "'eos' in group_names or 'ios' in group_names"
