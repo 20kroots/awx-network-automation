@@ -1,0 +1,35 @@
+---
+- name: Generate and export hostnames CSV
+  hosts: all
+  gather_facts: true
+  vars:
+    output_dir: "/var/lib/awx/projects"  # AWX-accessible location
+    csv_filename: "hostnames_{{ ansible_date_time.date }}.csv"
+
+  tasks:
+    # Generate CSV content
+    - name: Create CSV content
+      ansible.builtin.set_fact:
+        csv_content: |
+          Hostname,IP,Type,Timestamp
+          {% for host in ansible_play_hosts %}
+          {{ hostvars[host].device_hostname | default('UNKNOWN') }},{{ host }},{{ hostvars[host].ansible_network_os | upper }},{{ ansible_date_time.iso8601 }}
+          {% endfor %}
+      run_once: true
+
+    # Write to AWX project directory
+    - name: Save CSV file
+      ansible.builtin.copy:
+        content: "{{ csv_content }}"
+        dest: "{{ output_dir }}/{{ csv_filename }}"
+        mode: '0644'
+      delegate_to: localhost
+      run_once: true
+
+    # Register artifact properly for AWX
+    - name: Set artifact path
+      ansible.builtin.set_stats:
+        data:
+          artifact_path: "{{ output_dir }}/{{ csv_filename }}"
+      delegate_to: localhost
+      run_once: true
