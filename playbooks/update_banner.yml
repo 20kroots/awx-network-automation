@@ -1,6 +1,6 @@
 ---
 - name: Configure login banner on Cisco switch
-  hosts: cisco_switches
+  hosts: u1-int-rtr01
   gather_facts: no
   connection: ansible.netcommon.network_cli
   tasks:
