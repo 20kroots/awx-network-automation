@@ -19,18 +19,10 @@
       when: "'ios' in group_names"
       ignore_errors: yes
 
-    - name: Get Cisco NX-OS hostname
-      cisco.nxos.nxos_command:
-        commands: show running-config | include hostname
-      register: device_hostname
-      when: "'nxos' in group_names"
-      ignore_errors: yes
-
     - name: Display hostnames
       debug:
         msg: |
           Device: {{ inventory_hostname }}
           Hostname: {% if 'eos' in group_names %}{{ device_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
                    {% elif 'ios' in group_names %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
-                   {% elif 'nxos' in group_names %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
                    {% else %}UNKNOWN (check group assignment){% endif %}
