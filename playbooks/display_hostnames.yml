@@ -1,28 +1,15 @@
 ---
-- name: Gather device hostnames using group-based classification
-  hosts: all
-  gather_facts: false
+- name: Get Cisco device hostname using show command
+  hosts: cisco_devices
+  gather_facts: no
   connection: network_cli
 
   tasks:
-    - name: Get Arista EOS hostname
-      arista.eos.eos_command:
-        commands: show hostname
-      register: device_hostname
-      when: "'eos' in group_names"
-      ignore_errors: yes
-
-    - name: Get Cisco IOS hostname
+    - name: Run show command to get hostname
       cisco.ios.ios_command:
-        commands: show running-config | include hostname
-      register: device_hostname
-      when: "'ios' in group_names"
-      ignore_errors: yes
+        commands: show run | include hostname
+      register: show_hostname
 
-    - name: Display hostnames
+    - name: Display hostname
       debug:
-        msg: |
-          Device: {{ inventory_hostname }}
-          Hostname: {% if 'eos' in group_names %}{{ device_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
-                   {% elif 'ios' in group_names %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
-                   {% else %}UNKNOWN (check group assignment){% endif %}
+        msg: "Hostname of {{ inventory_hostname }} is {{ show_hostname.stdout[0].split('hostname ')[1] }}"
