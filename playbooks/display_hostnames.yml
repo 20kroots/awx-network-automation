@@ -7,6 +7,8 @@
   vars:
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: "{{ 'eos' if 'eos' in group_names else 'ios' if 'ios' in group_names else omit }}"
+    output_dir: "/tmp/awx_hostnames"
+    csv_file: "{{ output_dir }}/hostnames_{{ ansible_date_time.iso8601_basic_short }}.csv"
 
   tasks:
     # Collect hostnames from Arista EOS devices
