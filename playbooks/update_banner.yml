@@ -4,7 +4,7 @@
   gather_facts: no
   connection: ansible.netcommon.network_cli  # Explicitly set to network_cli for SSH
   vars:
-    github_banner_url: "https://github.com/20kroots/awx-network-automation/blob/main/config/cisco/banner.txt"
+    github_banner_url: "https://raw.githubusercontent.com/20kroots/awx-network-automation/main/config/cisco/banner.txt"
     temp_banner_file: "/tmp/banner_template.txt"
     banner_delimiter: "end_banner"
 
