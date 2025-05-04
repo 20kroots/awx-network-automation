@@ -1,36 +1,36 @@
 ---
-- name: Gather device hostnames from network devices
+- name: Gather device hostnames using group-based classification
   hosts: all
   gather_facts: false
-  connection: ansible.netcommon.network_cli
+  connection: network_cli
 
   tasks:
-    - name: Set network OS based on group membership
-      set_fact:
-        ansible_network_os: >-
-          {% if 'eos' in group_names %}eos
-          {% elif 'ios' in group_names %}ios
-          {% else %}auto{% endif %}
-
     - name: Get Arista EOS hostname
       arista.eos.eos_command:
         commands: show hostname
       register: device_hostname
-      when: ansible_network_os == 'eos'
+      when: "'eos' in group_names"
       ignore_errors: yes
 
     - name: Get Cisco IOS hostname
       cisco.ios.ios_command:
         commands: show running-config | include hostname
       register: device_hostname
-      when: ansible_network_os == 'ios'
+      when: "'ios' in group_names"
+      ignore_errors: yes
+
+    - name: Get Cisco NX-OS hostname
+      cisco.nxos.nxos_command:
+        commands: show running-config | include hostname
+      register: device_hostname
+      when: "'nxos' in group_names"
       ignore_errors: yes
 
     - name: Display hostnames
       debug:
         msg: |
           Device: {{ inventory_hostname }}
-          Type: {{ ansible_network_os | upper }}
-          Hostname: {% if ansible_network_os == 'eos' %}{{ device_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
-                   {% elif ansible_network_os in 'ios' %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
+          Hostname: {% if 'eos' in group_names %}{{ device_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
+                   {% elif 'ios' in group_names %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
+                   {% elif 'nxos' in group_names %}{{ device_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
                    {% else %}UNKNOWN (check group assignment){% endif %}
