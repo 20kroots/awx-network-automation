@@ -7,6 +7,8 @@
   vars:
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: "{{ 'eos' if 'eos' in group_names else 'ios' if 'ios' in group_names else omit }}"
+    ansible_user: "admin"
+    ansible_password: "admin"
 
   tasks:
     # Collect hostnames from Arista EOS devices
