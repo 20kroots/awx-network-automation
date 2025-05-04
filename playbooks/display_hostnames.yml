@@ -25,13 +25,35 @@
       when: "'ios' in group_names"
       ignore_errors: yes
 
-    # Process and display results
-    - name: Show hostnames
-      debug:
-        msg: |
-          Device: {{ inventory_hostname }}
-          Type: {{ 'Arista EOS' if 'eos' in group_names else 'Cisco IOS' }}
-          Hostname: {% if 'eos' in group_names and eos_result is defined %}{{ eos_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
-                   {% elif 'ios' in group_names and ios_result is defined %}{{ ios_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
-                   {% else %}NOT FOUND{% endif %}
+    # Extract hostnames to facts
+    - name: Set hostname facts
+      set_fact:
+        device_hostname: >-
+          {% if 'eos' in group_names and eos_result is defined %}
+            {{ eos_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
+          {% elif 'ios' in group_names and ios_result is defined %}
+            {{ ios_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
+          {% else %}
+            UNKNOWN
+          {% endif %}
+
+    # Create CSV content
+    - name: Generate CSV content
+      ansible.builtin.set_fact:
+        csv_lines: "{{ csv_lines | default([]) + [ {'Hostname': device_hostname, 'IP': inventory_hostname, 'Type': ansible_network_os | upper } ] }}"
       when: "'eos' in group_names or 'ios' in group_names"
+
+    # Write CSV file
+    - name: Write CSV file
+      ansible.builtin.template:
+        src: csv_template.j2
+        dest: "{{ csv_file }}"
+      delegate_to: localhost
+      run_once: true
+
+    # Register file as AWX artifact
+    - name: Register output file
+      ansible.builtin.set_fact:
+        awx_artifact_files: "{{ csv_file }}"
+      delegate_to: localhost
+      run_once: true
