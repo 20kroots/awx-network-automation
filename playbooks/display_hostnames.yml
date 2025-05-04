@@ -2,38 +2,36 @@
 - name: Collect network device hostnames
   hosts: all
   gather_facts: false
-  connection: network_cli
+
+  # Set connection parameters
+  vars:
+    ansible_connection: ansible.netcommon.network_cli
+    ansible_network_os: "{{ 'eos' if 'eos' in group_names else 'ios' if 'ios' in group_names else omit }}"
 
   tasks:
-    # Set network OS based on group membership
-    - name: Set ansible_network_os
-      set_fact:
-        ansible_network_os: >-
-          {% if 'eos' in group_names %}arista.eos.eos
-          {% elif 'ios' in group_names %}cisco.ios.ios
-          {% else %}unknown{% endif %}
-
     # Collect hostnames from Arista EOS devices
     - name: Get EOS hostname
       arista.eos.eos_command:
         commands: show hostname
-      register: eos_hostname
-      when: ansible_network_os == 'eos'
+      register: hostname_result
+      when: "'eos' in group_names"
+      ignore_errors: yes
 
     # Collect hostnames from Cisco IOS devices  
     - name: Get IOS hostname
       cisco.ios.ios_command:
         commands: show running-config | include hostname
-      register: ios_hostname
-      when: ansible_network_os == 'ios'
+      register: hostname_result
+      when: "'ios' in group_names"
+      ignore_errors: yes
 
     # Display results
     - name: Show hostnames
       debug:
         msg: |
           Device: {{ inventory_hostname }}
-          Type: {{ ansible_network_os | upper }}
-          Hostname: {% if ansible_network_os == 'eos' %}{{ eos_hostname.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') }}
-                   {% elif ansible_network_os == 'ios' %}{{ ios_hostname.stdout[0] | regex_replace('hostname (\\S+)', '\\1') }}
-                   {% else %}Unknown device type{% endif %}
-      when: ansible_network_os != 'unknown'
+          Type: {{ 'Arista EOS' if 'eos' in group_names else 'Cisco IOS' if 'ios' in group_names else 'Unknown' }}
+          Hostname: {% if 'eos' in group_names %}{{ hostname_result.stdout[0] | regex_replace('.*hostname is (\\S+).*', '\\1') | default('UNKNOWN') }}
+                   {% elif 'ios' in group_names %}{{ hostname_result.stdout[0] | regex_replace('hostname (\\S+)', '\\1') | default('UNKNOWN') }}
+                   {% else %}UNKNOWN DEVICE TYPE{% endif %}
+      when: "'eos' in group_names or 'ios' in group_names"
